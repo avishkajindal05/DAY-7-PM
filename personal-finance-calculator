@@ -1,0 +1,250 @@
+"""
+Personal Finance Calculator
+
+Collects employee salary details, validates inputs,
+and generates a professional financial summary report.
+"""
+
+
+def validate_positive(value, field_name):
+    """
+    Validates that a numeric value is greater than zero.
+
+    Args:
+        value (float): The value to validate.
+        field_name (str): Name of the field for error messaging.
+
+    Returns:
+        float: Validated value.
+
+    Raises:
+        ValueError: If validation fails.
+    """
+    if value <= 0:
+        raise ValueError(f"{field_name} must be greater than 0.")
+    return value
+
+
+def validate_percentage(value, field_name, max_value):
+    """
+    Validates that a percentage value is within range.
+
+    Args:
+        value (float): The percentage value.
+        field_name (str): Field name.
+        max_value (float): Maximum allowed value.
+
+    Returns:
+        float: Validated value.
+
+    Raises:
+        ValueError: If validation fails.
+    """
+    if value < 0 or value > max_value:
+        raise ValueError(f"{field_name} must be between 0 and {max_value}.")
+    return value
+
+
+def collect_employee_data():
+    """
+    Collects and validates employee input data.
+
+    Returns:
+        dict: Employee financial inputs.
+    """
+    name = input("Enter employee name: ")
+
+    annual_salary = validate_positive(
+        float(input("Enter annual salary: ")), "Annual salary"
+    )
+
+    tax_percentage = validate_percentage(
+        float(input("Enter tax percentage (0-50): ")),
+        "Tax percentage",
+        50
+    )
+
+    monthly_rent = validate_positive(
+        float(input("Enter monthly rent: ")), "Monthly rent"
+    )
+
+    savings_percentage = validate_percentage(
+        float(input("Enter savings goal percentage (0-100): ")),
+        "Savings goal percentage",
+        100
+    )
+
+    return {
+        "name": name,
+        "annual_salary": annual_salary,
+        "tax_percentage": tax_percentage,
+        "monthly_rent": monthly_rent,
+        "savings_percentage": savings_percentage,
+    }
+
+
+def calculate_finances(data):
+    """
+    Performs all required financial calculations.
+
+    Args:
+        data (dict): Employee input data.
+
+    Returns:
+        dict: Calculated financial metrics.
+    """
+    monthly_salary = data["annual_salary"] / 12
+    monthly_tax = monthly_salary * (data["tax_percentage"] / 100)
+    net_salary = monthly_salary - monthly_tax
+    savings_amount = net_salary * (data["savings_percentage"] / 100)
+    disposable_income = net_salary - data["monthly_rent"] - savings_amount
+    rent_ratio = (data["monthly_rent"] / net_salary) * 100
+
+    return {
+        "monthly_salary": monthly_salary,
+        "monthly_tax": monthly_tax,
+        "net_salary": net_salary,
+        "savings_amount": savings_amount,
+        "disposable_income": disposable_income,
+        "rent_ratio": rent_ratio,
+        "annual_tax": monthly_tax * 12,
+        "annual_savings": savings_amount * 12,
+        "annual_rent": data["monthly_rent"] * 12,
+    }
+
+
+def generate_report(data, results):
+    """
+    Generates formatted financial summary report.
+
+    Args:
+        data (dict): Input data.
+        results (dict): Calculated financial data.
+    """
+    print("════════════════════════════════════════════")
+    print("EMPLOYEE FINANCIAL SUMMARY")
+    print("════════════════════════════════════════════")
+    print(f"Employee : {data['name']}")
+    print(f"Annual Salary : ₹{data['annual_salary']:,.2f}")
+    print("────────────────────────────────────────────")
+    print("Monthly Breakdown:")
+    print(f"Gross Salary : ₹ {results['monthly_salary']:,.2f}")
+    print(f"Tax ({data['tax_percentage']}%) : ₹ {results['monthly_tax']:,.2f}")
+    print(f"Gross Salary : {format_indian_currency(results['monthly_salary'])}")
+    print(
+        f"Rent : ₹ {data['monthly_rent']:,.2f} "
+        f"({results['rent_ratio']:.1f}% of net)"
+    )
+    print(
+        f"Savings ({data['savings_percentage']}%) : "
+        f"₹ {results['savings_amount']:,.2f}"
+    )
+    print(f"Disposable : ₹ {results['disposable_income']:,.2f}")
+    print("────────────────────────────────────────────")
+    print("Annual Projection:")
+    print(f"Total Tax : ₹ {results['annual_tax']:,.2f}")
+    print(f"Total Savings : ₹ {results['annual_savings']:,.2f}")
+    print(f"Total Rent : ₹ {results['annual_rent']:,.2f}")
+    print("════════════════════════════════════════════")
+
+def format_indian_currency(amount):
+    """
+    Formats number into Indian numbering system (lakhs/crores).
+
+    Args:
+        amount (float): Amount to format.
+
+    Returns:
+        str: Formatted currency string.
+    """
+    amount_str = f"{amount:,.2f}"
+    parts = amount_str.split(".")
+    integer_part = parts[0].replace(",", "")
+    decimal_part = parts[1]
+
+    if len(integer_part) <= 3:
+        return f"₹{integer_part}.{decimal_part}"
+
+    last_three = integer_part[-3:]
+    remaining = integer_part[:-3]
+
+    remaining = ",".join(
+        [remaining[max(i - 2, 0):i] for i in range(len(remaining), 0, -2)][::-1]
+    )
+
+    return f"₹{remaining},{last_three}.{decimal_part}"
+
+def calculate_health_score(results, data):
+    """
+    Calculates financial health score (0-100).
+
+    Returns:
+        int: Score.
+    """
+    score = 0
+
+    if results["rent_ratio"] < 30:
+        score += 30
+
+    if data["savings_percentage"] >= 20:
+        score += 30
+
+    disposable_ratio = (
+        results["disposable_income"] / results["net_salary"]
+    ) * 100
+
+    if disposable_ratio >= 30:
+        score += 40
+
+    return score
+
+
+def compare_employees(emp1_name, emp1_score, emp2_name, emp2_score):
+    """
+    Displays comparison table.
+    """
+    print("\n══════════ EMPLOYEE COMPARISON ══════════")
+    print(f"{'Metric':<20}{emp1_name:<20}{emp2_name:<20}")
+    print("-" * 60)
+    print(f"{'Health Score':<20}{emp1_score:<20}{emp2_score:<20}")
+    print("══════════════════════════════════════════")
+    
+    
+
+def main():
+    """
+    Main execution function for two-employee comparison.
+    """
+    try:
+        print("\nEnter details for Employee 1")
+        employee_1 = collect_employee_data()
+        results_1 = calculate_finances(employee_1)
+        score_1 = calculate_health_score(results_1, employee_1)
+
+        print("\nEnter details for Employee 2")
+        employee_2 = collect_employee_data()
+        results_2 = calculate_finances(employee_2)
+        score_2 = calculate_health_score(results_2, employee_2)
+
+        print("\n--- Employee 1 Report ---")
+        generate_report(employee_1, results_1)
+
+        print(f"Financial Health Score: {score_1}/100")
+
+        print("\n--- Employee 2 Report ---")
+        generate_report(employee_2, results_2)
+
+        print(f"Financial Health Score: {score_2}/100")
+
+        compare_employees(
+            employee_1["name"],
+            score_1,
+            employee_2["name"],
+            score_2
+        )
+
+    except ValueError as error:
+        print(f"Input Error: {error}")
+
+if __name__ == "__main__":
+    main()
